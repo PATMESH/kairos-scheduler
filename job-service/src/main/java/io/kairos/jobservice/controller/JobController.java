@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -47,8 +48,10 @@ public class JobController {
     }
 
     @GetMapping("/{userId}")
-    public Flux<Job> getUserJobs(@PathVariable UUID userId) {
-        return jobService.getUserJobs(userId);
+    public Mono<ApiResponse<List<Job>>> getUserJobs(@PathVariable UUID userId) {
+        return jobService.getUserJobs(userId)
+                .collectList()
+                .map(ApiResponse::success);
     }
 
     @PutMapping
