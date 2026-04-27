@@ -7,6 +7,14 @@ spring:
     port: 9042
     local-datacenter: datacenter1
     schema-action: create_if_not_exists
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: ${KAFKA_PRODUCER_ACKS:all}
+      retries: ${KAFKA_PRODUCER_RETRIES:3}
+      batch-size: ${KAFKA_PRODUCER_BATCH_SIZE:16384}
+      linger-ms: ${KAFKA_PRODUCER_LINGER_MS:10}
+      compression-type: ${KAFKA_PRODUCER_COMPRESSION_TYPE:snappy}
 
 kairos:
   raft:
@@ -17,10 +25,18 @@ kairos:
     node-id: ${NODE_ID:scheduler-1}
     port: ${RAFT_PORT:9090}
     address: ${RAFT_ADDRESS:localhost}
+  kafka:
+    topic:
+      task-execution: ${KAFKA_TOPIC_TASK_EXECUTION:task-execution}
   scheduler:
+    node-id: ${NODE_ID:scheduler-1}
     worker-heartbeat-interval-ms: ${WORKER_HEARTBEAT_INTERVAL_MS:2000}
     worker-heartbeat-timeout-ms: ${WORKER_HEARTBEAT_TIMEOUT_MS:8000}
     worker-liveness-check-ms: ${WORKER_LIVENESS_CHECK_MS:3000}
+    polling-interval-ms: ${POLLING_INTERVAL_MS:1000}
+    time-window-seconds: ${TIME_WINDOW_SECONDS:60}
+    recovery-scan-interval-ms: ${RECOVERY_SCAN_INTERVAL_MS:300000}
+    recovery-lookback-minutes: ${RECOVERY_LOOKBACK_MINUTES:30}
 
 server:
   port: ${SERVER_PORT:8081}

@@ -1,5 +1,6 @@
 package io.kairos.scheduler.raft;
 
+import io.kairos.scheduler.hashing.HashRange;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ratis.proto.RaftProtos.LogEntryProto;
 import org.apache.ratis.protocol.Message;
