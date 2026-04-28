@@ -1,34 +1,49 @@
--- Cassandra Schema for Kairos Scheduler Service
--- Task Schedule Table
+CREATE KEYSPACE IF NOT EXISTS kairos
+    WITH replication = {
+        'class': 'SimpleStrategy',
+        'replication_factor': 3
+    };
 
--- Create keyspace
-CREATE KEYSPACE IF NOT EXISTS job_scheduler
-  WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+USE kairos;
 
--- Create task_schedule table
-CREATE TABLE IF NOT EXISTS job_scheduler.task_schedule (
-    next_execution_time bigint,              -- Partition key: execution time in seconds
-    task_id text,                           -- Clustering key: unique task identifier
-    job_id text,                            -- Job identifier
-    correlation_id text,                    -- Correlation ID for tracing
-    ring_hash int,                          -- Hash ring value for distribution
-    status text,                            -- Status: PENDING, RUNNING, COMPLETED, FAILED
-    payload text,                           -- Task payload (JSON)
-    source text,                            -- Source of the task
-    created_at timestamp,                   -- Creation timestamp
-    updated_at timestamp,                   -- Last update timestamp
-    attempt_count int,                      -- Number of execution attempts
-    max_retries int,                        -- Maximum number of retries
-    metadata map<text, text>,               -- Additional metadata
-    
-    PRIMARY KEY (next_execution_time, task_id)
-) WITH CLUSTERING ORDER BY (task_id ASC)
-  AND compaction = {'class': 'TimeWindowCompactionStrategy', 'compaction_window_unit': 'DAYS', 'compaction_window_size': 1}
-  AND default_time_to_live = 2592000;  -- 30-day TTL
+CREATE TABLE IF NOT EXISTS jobs (
+    user_id          UUID,
+    job_id           UUID,
+    callback_url     TEXT,
+    payload          TEXT,
+    is_recurring     BOOLEAN,
+    interval         TEXT,
+    max_retry_count  INT,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    PRIMARY KEY (user_id, job_id)
+) WITH CLUSTERING ORDER BY (job_id ASC);
 
 
--- Create indices for efficient querying
-CREATE INDEX IF NOT EXISTS idx_task_schedule_status ON job_scheduler.task_schedule (status);
-CREATE INDEX IF NOT EXISTS idx_task_schedule_ring_hash ON job_scheduler.task_schedule (ring_hash);
-CREATE INDEX IF NOT EXISTS idx_task_schedule_job_id ON job_scheduler.task_schedule (job_id);
-CREATE INDEX IF NOT EXISTS idx_task_schedule_correlation_id ON job_scheduler.task_schedule (correlation_id);
+CREATE TABLE IF NOT EXISTS task_schedule (
+    next_execution_time BIGINT,
+    ring_hash           BIGINT,
+    job_id              UUID,
+    is_recurring        BOOLEAN,
+    execution_interval  TEXT,
+    PRIMARY KEY (next_execution_time, ring_hash, job_id)
+) WITH CLUSTERING ORDER BY (ring_hash ASC, job_id ASC)
+  AND default_time_to_live = 604800;
+
+-- Audit log
+CREATE TABLE IF NOT EXISTS task_execution_history (
+    job_id         UUID,
+    execution_time TIMESTAMP,
+    status         TEXT,
+    retry_count    INT,
+    error_message  TEXT,
+    PRIMARY KEY (job_id, execution_time)
+) WITH CLUSTERING ORDER BY (execution_time DESC)
+  AND default_time_to_live = 7776000;
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_jobs_job_id
+    ON jobs (job_id);
+
+CREATE INDEX IF NOT EXISTS idx_task_schedule_job_id
+    ON task_schedule (job_id);

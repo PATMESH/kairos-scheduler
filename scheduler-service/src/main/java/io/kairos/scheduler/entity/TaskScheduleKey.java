@@ -8,16 +8,21 @@ import org.springframework.data.cassandra.core.cql.PrimaryKeyType;
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyClass;
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
 
+import java.io.Serializable;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @PrimaryKeyClass
-public class TaskScheduleKey {
+public class TaskScheduleKey implements Serializable {
 
-    @PrimaryKeyColumn(name = "next_execution_time", ordinal = 0, type = PrimaryKeyType.PARTITIONED)
-    private long nextExecutionTime;
+    @PrimaryKeyColumn(name = "next_execution_time", type = PrimaryKeyType.PARTITIONED)
+    private Long nextExecutionTime;
 
-    @PrimaryKeyColumn(name = "task_id", ordinal = 1, type = PrimaryKeyType.CLUSTERED)
-    private String taskId;
+    @PrimaryKeyColumn(name = "ring_hash", type = PrimaryKeyType.CLUSTERED)
+    private Long ringHash;
+
+    @PrimaryKeyColumn(name = "job_id", type = PrimaryKeyType.CLUSTERED)
+    private java.util.UUID jobId;
 }

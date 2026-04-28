@@ -21,44 +21,11 @@ import java.util.UUID;
 public class TaskSchedule {
 
     @PrimaryKey
-    private TaskScheduleKey id;
+    private TaskScheduleKey key;
 
-    @Column("next_execution_time")
-    private long nextExecutionTime;
+    @Column("execution_interval")
+    private String executionInterval;
 
-    @Column("status")
-    private String status; // PENDING, RUNNING, COMPLETED, FAILED
-
-    @Column("ring_hash")
-    private int ringHash;
-
-    @Column("job_id")
-    private String jobId;
-
-    @Column("task_id")
-    private String taskId;
-
-    @Column("correlation_id")
-    private String correlationId;
-
-    @Column("payload")
-    private String payload;
-
-    @Column("source")
-    private String source;
-
-    @Column("created_at")
-    private Instant createdAt;
-
-    @Column("updated_at")
-    private Instant updatedAt;
-
-    @Column("attempt_count")
-    private int attemptCount;
-
-    @Column("max_retries")
-    private int maxRetries;
-
-    @Column("metadata")
-    private Map<String, String> metadata;
+    @Column("is_recurring")
+    private Boolean isRecurring;
 }

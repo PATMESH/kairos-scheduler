@@ -1,11 +1,13 @@
 package io.kairos.scheduler.polling;
 
 import io.kairos.scheduler.entity.TaskSchedule;
+import io.kairos.scheduler.entity.TaskScheduleKey;
 import io.kairos.scheduler.kafka.producer.TaskEventProducer;
 import io.kairos.scheduler.hashing.HashRange;
 import io.kairos.scheduler.raft.RaftNode;
 import io.kairos.scheduler.raft.SchedulerStateMachine;
 import io.kairos.scheduler.repository.TaskScheduleRepository;
+import io.kairos.scheduler.util.ExecutionIntervalCalculator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,10 +18,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Main polling worker that continuously polls for scheduled tasks
- * within its allocated hash range and publishes them to Kafka
- */
+
 @Slf4j
 @Component
 public class PollingWorker {
@@ -32,7 +31,7 @@ public class PollingWorker {
     @Value("${kairos.raft.node-id:scheduler-1}")
     private String nodeId;
 
-    @Value("${kairos.scheduler.polling-interval-ms:1000}")
+    @Value("${kairos.scheduler.polling-interval-ms:60000}")
     private long pollingIntervalMs;
 
     @Value("${kairos.scheduler.time-window-seconds:60}")
@@ -52,10 +51,7 @@ public class PollingWorker {
         this.taskEventProducer = taskEventProducer;
     }
 
-    /**
-     * Main polling loop - runs continuously at fixed intervals
-     */
-    @Scheduled(fixedDelayString = "${kairos.scheduler.polling-interval-ms:1000}")
+    @Scheduled(fixedDelayString = "${kairos.scheduler.polling-interval-ms:60000}")
     public void pollAndExecuteTasks() {
         if (isPolling.getAndSet(true)) {
             log.trace("Polling already in progress, skipping");
@@ -65,39 +61,33 @@ public class PollingWorker {
         try {
             long startTime = System.currentTimeMillis();
 
-            // Check if rebalancing is in progress - if so, pause polling
             if (isRebalancing()) {
                 log.debug("Cluster rebalancing in progress, pausing polling");
                 return;
             }
 
-            // Get current node's hash range
             HashRange myRange = getMyHashRange();
             if (myRange == null) {
                 log.warn("No hash range assigned to node {}, skipping poll cycle", nodeId);
                 return;
             }
 
-            // Calculate current execution window
-            long currentTimeSeconds = System.currentTimeMillis() / 1000;
-            long windowEndTime = currentTimeSeconds + timeWindowSeconds;
+            long nextBucket = (System.currentTimeMillis() / 1000) + 60;
 
-            log.trace("Polling cycle started - node: {}, hashRange: [{}, {}], window: [{}s, {}s]",
-                    nodeId, myRange.start(), myRange.end(), currentTimeSeconds, windowEndTime);
+            log.info("Polling — node: {}, bucket: {}, hashRange: [{}, {}]",
+                    nodeId, nextBucket, myRange.start(), myRange.end());
 
-            // Query tasks in current time window within this node's hash range
             List<TaskSchedule> tasksToExecute = taskScheduleRepository.findTasksByTimeAndHashRange(
-                    currentTimeSeconds,
+                    nextBucket,
                     myRange.start(),
                     myRange.end()
             );
 
             if (!tasksToExecute.isEmpty()) {
-                log.info("Found {} tasks ready for execution in window [{}s]", tasksToExecute.size(), currentTimeSeconds);
+                log.info("Found {} tasks ready for execution in window [{}s]", tasksToExecute.size(), nextBucket);
 
-                // Filter out already processed tasks
                 List<TaskSchedule> newTasks = tasksToExecute.stream()
-                        .filter(task -> !isTaskRecentlyProcessed(task.getTaskId()))
+                        .filter(task -> !isTaskRecentlyProcessed(task.getKey().getJobId().toString()))
                         .toList();
 
                 if (!newTasks.isEmpty()) {
@@ -108,9 +98,48 @@ public class PollingWorker {
                                 return null;
                             })
                             .thenRun(() -> {
-                                // Mark tasks as processed after successful publish
-                                newTasks.forEach(task -> markTaskAsProcessed(task.getTaskId()));
-                                log.debug("Marked {} tasks as processed", newTasks.size());
+                                newTasks.forEach(task -> {
+                                    try {
+                                        // DELETING old task
+                                        long executionTime = task.getKey().getNextExecutionTime();
+                                        long ringHash = task.getKey().getRingHash();
+                                        var jobId = task.getKey().getJobId();
+
+                                        taskScheduleRepository.deleteTask(executionTime, ringHash, jobId);
+                                        log.debug("Deleted executed task - jobId: {}, executionTime: {}", jobId, executionTime);
+
+                                        // For recurring jobs, INSERTING new task with next execution time
+                                        if (task.getIsRecurring() != null && task.getIsRecurring()) {
+                                            long nextExecutionTime = ExecutionIntervalCalculator.calculateNextExecutionTime(
+                                                    executionTime,
+                                                    task.getExecutionInterval()
+                                            );
+
+                                            TaskScheduleKey newKey = TaskScheduleKey.builder()
+                                                    .nextExecutionTime(nextExecutionTime)
+                                                    .ringHash(ringHash)
+                                                    .jobId(jobId)
+                                                    .build();
+
+                                            TaskSchedule newTask = TaskSchedule.builder()
+                                                    .key(newKey)
+                                                    .executionInterval(task.getExecutionInterval())
+                                                    .isRecurring(true)
+                                                    .build();
+
+                                            taskScheduleRepository.save(newTask);
+                                            log.debug("Scheduled next execution - jobId: {}, nextExecutionTime: {}", jobId, nextExecutionTime);
+                                        } else {
+                                            log.debug("Task is one-time, no new task scheduled - jobId: {}", jobId);
+                                        }
+
+                                        markTaskAsProcessed(jobId.toString());
+
+                                    } catch (Exception e) {
+                                        log.error("Error processing task cleanup - jobId: {}", task.getKey().getJobId(), e);
+                                    }
+                                });
+                                log.debug("Completed task processing - deleted {} tasks, scheduled recurring instances", newTasks.size());
                             });
                 } else {
                     log.trace("All {} found tasks were already processed in this cycle", tasksToExecute.size());
@@ -127,42 +156,27 @@ public class PollingWorker {
         }
     }
 
-    /**
-     * Check if cluster is currently rebalancing
-     */
     private boolean isRebalancing() {
         return stateMachine.getClusterState() != io.kairos.scheduler.raft.ClusterState.ACTIVE;
     }
 
-    /**
-     * Get this node's assigned hash range
-     */
     private HashRange getMyHashRange() {
         return stateMachine.getMyRange(nodeId);
     }
 
-    /**
-     * Check if task was recently processed to avoid duplicates
-     */
+
     private boolean isTaskRecentlyProcessed(String taskId) {
         return recentlyProcessed.contains(taskId);
     }
 
-    /**
-     * Mark task as processed in this cycle
-     */
     private void markTaskAsProcessed(String taskId) {
         recentlyProcessed.add(taskId);
 
-        // Prevent memory unbounded growth
         if (recentlyProcessed.size() > RECENT_WINDOW_SIZE) {
             recentlyProcessed.clear();
         }
     }
 
-    /**
-     * Get polling metrics for monitoring
-     */
     public boolean isActive() {
         return !isPolling.get();
     }

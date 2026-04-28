@@ -183,15 +183,15 @@ public class RaftClusterManager {
             throw new IllegalArgumentException("Cannot calculate ranges without Raft peers");
         }
 
-        int total = HashRange.RANGE_MAX + 1; // 1,000,000
-        int n = sortedIds.size();
-        int perNode = total / n;
-        int remainder = total % n;
+        long total = HashRange.RANGE_MAX + 1; // 1,000,000
+        long n = sortedIds.size();
+        long perNode = total / n;
+        long remainder = total % n;
 
         Map<String, HashRange> ranges = new LinkedHashMap<>();
-        int cursor = 0;
+        long cursor = 0;
         for (int i = 0; i < n; i++) {
-            int size = perNode + (i < remainder ? 1 : 0);
+            long size = perNode + (i < remainder ? 1 : 0);
             ranges.put(sortedIds.get(i), new HashRange(cursor, cursor + size - 1));
             cursor += size;
         }
