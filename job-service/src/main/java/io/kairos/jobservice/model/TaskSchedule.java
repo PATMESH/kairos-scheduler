@@ -14,6 +14,9 @@ public class TaskSchedule {
     @PrimaryKey
     private TaskScheduleKey key;
 
-    @Column("status")
-    private String status;
+    @Column("execution_interval")
+    private String executionInterval;
+
+    @Column("is_recurring")
+    private Boolean isRecurring;
 }

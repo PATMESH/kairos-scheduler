@@ -10,7 +10,7 @@ public class JobMapper {
     public static Job toEntity(UUID userId, UUID jobId, CreateJobRequest request) {
         return Job.builder()
                 .key(new JobKey(userId, jobId))
-                .interval(request.getExecutionInterval())
+                .executionInterval(request.getExecutionInterval())
                 .isRecurring(request.isRecurring())
                 .maxRetry(request.getMaxRetryCount())
                 .createdAt(Instant.now())
@@ -21,7 +21,7 @@ public class JobMapper {
         return JobResponse.builder()
                 .jobId(job.getKey().getJobId())
                 .userId(job.getKey().getUserId())
-                .executionInterval(job.getInterval())
+                .executionInterval(job.getExecutionInterval())
                 .isRecurring(Boolean.TRUE.equals(job.getIsRecurring()))
                 .maxRetryCount(job.getMaxRetry())
                 .callbackUrl(callbackUrl)

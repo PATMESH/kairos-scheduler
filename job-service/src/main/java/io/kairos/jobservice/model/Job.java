@@ -15,8 +15,8 @@ public class Job {
     @PrimaryKey
     private JobKey key;
 
-    @Column("interval")
-    private String interval;
+    @Column("execution_interval")
+    private String executionInterval;
 
     @Column("is_recurring")
     private Boolean isRecurring;

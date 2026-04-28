@@ -2,7 +2,7 @@ spring:
   application:
     name: job-service
   cassandra:
-    keyspace-name: job_scheduler
+    keyspace-name: kairos
     contact-points: localhost
     port: 9042
     local-datacenter: datacenter1
