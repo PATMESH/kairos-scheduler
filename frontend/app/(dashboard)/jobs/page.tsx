@@ -36,13 +36,13 @@ export default function JobsPage() {
   const jobs: Job[] = (jobsResponse?.data || []).map((job: any) => ({
     jobId: job.key?.jobId,
     userId: job.key?.userId,
-    executionInterval: job.interval,
+    executionInterval: job.executionInterval,
     isRecurring: job.isRecurring,
     maxRetryCount: job.maxRetry,
     createdAt: job.createdAt,
     callbackUrl: '',
     status: 'scheduled',
-    nextExecutionTime: computeNextExecution(job.createdAt, job.interval),
+    nextExecutionTime: computeNextExecution(job.createdAt, job.executionInterval),
   }));
 
   function computeNextExecution(createdAt: string, interval: string): string {
