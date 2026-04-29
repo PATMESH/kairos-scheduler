@@ -33,7 +33,7 @@ public class JobController {
         Job job = JobMapper.toEntity(userId, jobId, request);
 
         return jobService.createJob(job)
-                .map(saved -> JobMapper.toResponse(saved, null, request.getCallbackUrl()))
+                .map(saved -> JobMapper.toResponse(saved, null))
                 .map(ApiResponse::success);
     }
 
@@ -43,7 +43,7 @@ public class JobController {
             @PathVariable UUID jobId) {
 
         return jobService.getJob(userId, jobId)
-                .map(job -> JobMapper.toResponse(job, null, null))
+                .map(job -> JobMapper.toResponse(job, null))
                 .map(ApiResponse::success);
     }
 
@@ -66,16 +66,6 @@ public class JobController {
 
         return jobService.deleteJob(userId, jobId)
                 .thenReturn(ApiResponse.success(null));
-    }
-
-    @PostMapping("/schedule")
-    public Mono<TaskSchedule> schedule(@RequestBody TaskSchedule schedule) {
-        return jobService.scheduleTask(schedule);
-    }
-
-    @PostMapping("/execution")
-    public Mono<TaskExecutionHistory> execution(@RequestBody TaskExecutionHistory history) {
-        return jobService.saveExecution(history);
     }
 
     @GetMapping("/execution/{jobId}")

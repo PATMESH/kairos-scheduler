@@ -17,14 +17,14 @@ public class JobMapper {
                 .build();
     }
 
-    public static JobResponse toResponse(Job job, String nextExecutionTime, String callbackUrl) {
+    public static JobResponse toResponse(Job job, String nextExecutionTime) {
         return JobResponse.builder()
                 .jobId(job.getKey().getJobId())
                 .userId(job.getKey().getUserId())
                 .executionInterval(job.getExecutionInterval())
                 .isRecurring(Boolean.TRUE.equals(job.getIsRecurring()))
                 .maxRetryCount(job.getMaxRetry())
-                .callbackUrl(callbackUrl)
+                .callbackUrl(job.getCallbackUrl())
                 .createdAt(job.getCreatedAt())
                 .nextExecutionTime(nextExecutionTime)
                 .build();
