@@ -18,4 +18,5 @@ public class JobResponse {
     private String callbackUrl;
     private Instant createdAt;
     private String nextExecutionTime;
+    private Instant scheduledAt;
 }

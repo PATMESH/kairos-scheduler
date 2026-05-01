@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -104,11 +105,12 @@ public class JobService {
     }
 
     private long calculateNextExecutionTime(String interval) {
-        // interval is ISO-8601 like PT1H, PT30M, PT45S
-        java.time.Duration duration = java.time.Duration.parse(interval);
-        return Instant.now().getEpochSecond() + duration.getSeconds();
+        Duration duration = Duration.parse(interval);
+        long nowSec = Instant.now().getEpochSecond();
+        long base = ((nowSec / 60) + 1) * 60;
+        long executionTime = base + duration.getSeconds();
+        return (executionTime / 60) * 60;
     }
-
 
     public Mono<Job> getJob(UUID userId, UUID jobId) {
         return jobRepository.findById(new JobKey(userId, jobId));

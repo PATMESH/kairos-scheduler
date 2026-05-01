@@ -48,8 +48,9 @@ public class JobController {
     }
 
     @GetMapping("/{userId}")
-    public Mono<ApiResponse<List<Job>>> getUserJobs(@PathVariable UUID userId) {
+    public Mono<ApiResponse<List<JobResponse>>> getUserJobs(@PathVariable UUID userId) {
         return jobService.getUserJobs(userId)
+                .map(job -> JobMapper.toResponse(job, null))
                 .collectList()
                 .map(ApiResponse::success);
     }

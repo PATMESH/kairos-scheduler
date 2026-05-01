@@ -3,7 +3,6 @@ package io.kairos.jobservice.model;
 import lombok.*;
 import org.springframework.data.cassandra.core.mapping.*;
 import java.time.Instant;
-import java.util.UUID;
 
 @Table("jobs")
 @Data
@@ -28,7 +27,7 @@ public class Job {
     private Boolean isRecurring;
 
     @Column("max_retry_count")
-    private Integer maxRetry;
+    private Integer maxRetryCount;
 
     @Column("scheduled_at")
     private Instant scheduledAt;
