@@ -175,7 +175,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
             </p>
           </div>
           <Badge variant="outline" className="w-fit">
-            {job.isRecurring ? 'Recurring Job' : 'One-time Job'}
+            {job.recurring ? 'Recurring Job' : 'One-time Job'}
           </Badge>
         </div>
 
@@ -205,8 +205,17 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
                 />
                 <InfoItem
                   icon={Calendar}
+                  label="Start At"
+                  value={format(new Date(job.scheduledAt), 'MMM d, yyyy HH:mm:ss')}
+                />
+                <InfoItem
+                  icon={Calendar}
                   label="Next Execution"
-                  value={format(new Date(job.nextExecutionTime), 'MMM d, yyyy HH:mm:ss')}
+                  value={
+                    job.nextExecutionTime
+                      ? format(new Date(job.nextExecutionTime), 'MMM d, yyyy HH:mm:ss')
+                      : 'N/A'
+                  }
                 />
                 <InfoItem
                   icon={RefreshCw}

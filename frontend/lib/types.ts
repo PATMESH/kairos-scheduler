@@ -39,12 +39,13 @@ export interface Job {
   jobId: string;
   userId: string;
   executionInterval: string;
-  isRecurring: boolean;
+  recurring: boolean;
   maxRetryCount: number;
   callbackUrl: string;
   payload?: string;
   createdAt: string;
   nextExecutionTime: string;
+  scheduledAt: string;
   status?: JobStatus;
 }
 
@@ -52,10 +53,11 @@ export type JobStatus = 'scheduled' | 'running' | 'success' | 'failed' | 'paused
 
 export interface CreateJobRequest {
   executionInterval: string;
-  isRecurring: boolean;
+  recurring: boolean;
   maxRetryCount: number;
   callbackUrl: string;
   payload?: string;
+  scheduledAt?: string;
 }
 
 export interface UpdateJobRequest extends CreateJobRequest {

@@ -81,11 +81,10 @@ export function JobsTable({ jobs, onJobDeleted }: JobsTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[200px]">Job ID</TableHead>
+            <TableHead className="w-[300px]">Job ID</TableHead>
             <TableHead>Interval</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Next Execution</TableHead>
             <TableHead>Retries</TableHead>
             <TableHead className="w-[70px]"></TableHead>
           </TableRow>
@@ -98,7 +97,7 @@ export function JobsTable({ jobs, onJobDeleted }: JobsTableProps) {
               onClick={() => handleViewDetails(job.jobId)}
             >
               <TableCell className="font-mono text-sm">
-                {job.jobId.slice(0, 8)}...
+                {job.jobId.slice(0, 20)}...
               </TableCell>
               <TableCell>
                 <code className="rounded bg-muted px-2 py-1 text-xs">
@@ -107,14 +106,11 @@ export function JobsTable({ jobs, onJobDeleted }: JobsTableProps) {
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className="font-normal">
-                  {job.isRecurring ? 'Recurring' : 'One-time'}
+                  {job.recurring ? 'Recurring' : 'One-time'}
                 </Badge>
               </TableCell>
               <TableCell>
                 <JobStatusBadge status={job.status} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {format(new Date(job.nextExecutionTime), 'MMM d, HH:mm')}
               </TableCell>
               <TableCell>
                 <span className="text-muted-foreground">{job.maxRetryCount}</span>

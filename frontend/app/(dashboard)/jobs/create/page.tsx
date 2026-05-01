@@ -27,7 +27,6 @@ import { useAuth } from '@/lib/auth-context';
 import { createJob } from '@/lib/api';
 
 const intervalPresets = [
-  { label: '30 seconds', value: 'PT30S' },
   { label: '1 minute', value: 'PT1M' },
   { label: '5 minutes', value: 'PT5M' },
   { label: '15 minutes', value: 'PT15M' },
@@ -41,10 +40,11 @@ const intervalPresets = [
 
 const createJobSchema = z.object({
   executionInterval: z.string().min(1, 'Execution interval is required'),
-  isRecurring: z.boolean(),
+  recurring: z.boolean(),
   maxRetryCount: z.number().min(0).max(10),
   callbackUrl: z.string().url('Please enter a valid URL'),
   payload: z.string().optional(),
+  startAt: z.string().optional(),
 });
 
 type CreateJobForm = z.infer<typeof createJobSchema>;
@@ -68,6 +68,12 @@ function parseInterval(interval: string): Date {
   return result;
 }
 
+function getLocalDateTimeString(date = new Date()) {
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
 export default function CreateJobPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -85,15 +91,16 @@ export default function CreateJobPage() {
     resolver: zodResolver(createJobSchema),
     defaultValues: {
       executionInterval: 'PT5M',
-      isRecurring: true,
+      recurring: true,
       maxRetryCount: 3,
       callbackUrl: '',
       payload: '',
+      startAt: getLocalDateTimeString()
     },
   });
 
   const executionInterval = watch('executionInterval');
-  const isRecurring = watch('isRecurring');
+  const recurring = watch('recurring');
 
   const nextExecutionTime = useMemo(() => {
     try {
@@ -124,10 +131,13 @@ export default function CreateJobPage() {
     try {
       const response = await createJob(user.id, {
         executionInterval: data.executionInterval,
-        isRecurring: data.isRecurring,
+        recurring: data.recurring,
         maxRetryCount: data.maxRetryCount,
         callbackUrl: data.callbackUrl,
         payload: data.payload,
+        scheduledAt: data.startAt
+        ? new Date(data.startAt).toISOString()
+        : undefined,
       });
 
       if (response.success) {
@@ -190,6 +200,21 @@ export default function CreateJobPage() {
                   )}
                 </Field>
 
+                <Field>
+                  <FieldLabel htmlFor="startAt">Start Time </FieldLabel>
+                  <input
+                    id="startAt"
+                    type="datetime-local"
+                    step="60"
+                    min={getLocalDateTimeString()}
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    {...register('startAt')}
+                  />
+                  {/* <p className="text-xs text-muted-foreground">
+                    Leave empty to start immediately
+                  </p> */}
+                </Field>
+
                 {/* Execution Interval */}
                 <Field>
                   <FieldLabel>Execution Interval</FieldLabel>
@@ -236,17 +261,17 @@ export default function CreateJobPage() {
                 <Field>
                   <div className="flex items-center justify-between rounded-lg border border-border/50 p-4">
                     <div>
-                      <FieldLabel htmlFor="isRecurring" className="mb-0">Recurring Job</FieldLabel>
+                      <FieldLabel htmlFor="recurring" className="mb-0">Recurring Job</FieldLabel>
                       <p className="text-sm text-muted-foreground">
-                        {isRecurring
+                        {recurring
                           ? 'Job will execute repeatedly at the specified interval'
                           : 'Job will execute once and then stop'}
                       </p>
                     </div>
                     <Switch
-                      id="isRecurring"
-                      checked={isRecurring}
-                      onCheckedChange={(checked) => setValue('isRecurring', checked)}
+                      id="recurring"
+                      checked={recurring}
+                      onCheckedChange={(checked) => setValue('recurring', checked)}
                     />
                   </div>
                 </Field>

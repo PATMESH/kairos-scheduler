@@ -91,7 +91,7 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     const totalJobs = jobs.length;
-    const activeJobs = jobs.filter((job) => job.isRecurring).length;
+    const activeJobs = jobs.filter((job) => job.recurring).length;
     const failedJobs = jobs.filter((job) => job.status === 'failed').length;
     const successRate = totalJobs > 0 ? Math.round(((totalJobs - failedJobs) / totalJobs) * 100) : 100;
     

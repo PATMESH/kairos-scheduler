@@ -34,37 +34,16 @@ export default function JobsPage() {
   );
 
   const jobs: Job[] = (jobsResponse?.data || []).map((job: any) => ({
-    jobId: job.key?.jobId,
-    userId: job.key?.userId,
+    jobId: job.jobId,
+    userId: job.userId,
     executionInterval: job.executionInterval,
-    isRecurring: job.isRecurring,
-    maxRetryCount: job.maxRetry,
+    recurring: job.recurring,
+    maxRetryCount: job.maxRetryCount,
     createdAt: job.createdAt,
-    callbackUrl: '',
-    status: 'scheduled',
-    nextExecutionTime: computeNextExecution(job.createdAt, job.executionInterval),
+    scheduledAt: job.scheduledAt,
+    callbackUrl: job.callbackUrl,
+    nextExecutionTime: job.nextExecutionTime,
   }));
-
-  function computeNextExecution(createdAt: string, interval: string): string {
-    const base = new Date(createdAt);
-
-    if (isNaN(base.getTime())) return '';
-
-    if (interval.startsWith('PT')) {
-      const hours = interval.match(/(\d+)H/)?.[1];
-      const minutes = interval.match(/(\d+)M/)?.[1];
-      const seconds = interval.match(/(\d+)S/)?.[1];
-
-      let ms = 0;
-
-      if (hours) ms += parseInt(hours) * 60 * 60 * 1000;
-      if (minutes) ms += parseInt(minutes) * 60 * 1000;
-      if (seconds) ms += parseInt(seconds) * 1000;
-      return new Date(base.getTime() + ms).toISOString();
-    }
-
-    return '';
-  }
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -75,8 +54,8 @@ export default function JobsPage() {
       const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
       const matchesType = 
         typeFilter === 'all' ||
-        (typeFilter === 'recurring' && job.isRecurring) ||
-        (typeFilter === 'one-time' && !job.isRecurring);
+        (typeFilter === 'recurring' && job.recurring) ||
+        (typeFilter === 'one-time' && !job.recurring);
 
       return matchesSearch && matchesStatus && matchesType;
     });
