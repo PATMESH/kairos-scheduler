@@ -97,7 +97,7 @@ public class RaftNode {
                 nodeId, address, port, peers.size(), describePeers(peers));
     }
 
-    @Scheduled(fixedDelay = 10_000)
+//    @Scheduled(fixedDelay = 10_000)
     public void logRaftState() {
         try {
             var division = server.getDivision(raftGroup.getGroupId());
@@ -160,6 +160,17 @@ public class RaftNode {
     }
 
     private List<RaftPeer> parsePeers() {
+
+        if (singleNode) {
+            log.warn("[Raft] Starting in SINGLE NODE mode. Ignoring configured peers.");
+
+            return new ArrayList<>(Collections.singletonList(
+                    RaftPeer.newBuilder()
+                            .setId(localPeerId)
+                            .setAddress(address + ":" + port)
+                            .build()));
+        }
+
         if (peersRaw == null || peersRaw.isBlank()) {
             if (!singleNode) {
                 throw new IllegalStateException("kairos.raft.peers/RAFT_PEERS is blank. "

@@ -1,8 +1,9 @@
 package io.kairos.scheduler.polling;
 
 import io.kairos.scheduler.entity.TaskSchedule;
-import io.kairos.scheduler.kafka.producer.TaskEventProducer;
 import io.kairos.scheduler.repository.TaskScheduleRepository;
+import io.kairos.scheduler.service.TaskDispatchService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,10 +15,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class RecoveryWorker {
 
     private final TaskScheduleRepository taskScheduleRepository;
-    private final TaskEventProducer taskEventProducer;
+    private final TaskDispatchService taskDispatchService;
 
     @Value("${kairos.scheduler.node-id:scheduler-1}")
     private String nodeId;
@@ -26,12 +28,6 @@ public class RecoveryWorker {
     private long recoveryLookbackMinutes;
 
     private final AtomicBoolean isRecovering = new AtomicBoolean(false);
-
-    public RecoveryWorker(TaskScheduleRepository taskScheduleRepository,
-                          TaskEventProducer taskEventProducer) {
-        this.taskScheduleRepository = taskScheduleRepository;
-        this.taskEventProducer = taskEventProducer;
-    }
 
     @Scheduled(fixedDelayString = "${kairos.scheduler.recovery-scan-interval-ms:300000}")
     public void scanAndRecoverOrphanedTasks() {
@@ -44,7 +40,8 @@ public class RecoveryWorker {
             long startTime = System.currentTimeMillis();
             long now = Instant.now().getEpochSecond();
             long lookbackSeconds = recoveryLookbackMinutes * 60;
-            long windowStart = now - lookbackSeconds;
+            long alignedNow = (now / 60) * 60;
+            long windowStart = alignedNow - lookbackSeconds;
 
             log.info("Recovery scan started — node: {}, scanning [{} → {}] ({} min lookback)",
                     nodeId, windowStart, now, recoveryLookbackMinutes);
@@ -60,20 +57,7 @@ public class RecoveryWorker {
                 totalFound += orphans.size();
                 log.warn("Found {} orphaned tasks in bucket {}", orphans.size(), bucket);
 
-                for (TaskSchedule task : orphans) {
-                    try {
-                        taskEventProducer.publishOrphanedTaskEvent(task)
-                                .exceptionally(ex -> {
-                                    log.error("Failed to recover task — jobId: {}",
-                                            task.getKey().getJobId(), ex);
-                                    return null;
-                                });
-                        totalRecovered++;
-                    } catch (Exception e) {
-                        log.error("Error recovering task — jobId: {}",
-                                task.getKey().getJobId(), e);
-                    }
-                }
+               taskDispatchService.processBatch(orphans);
             }
 
             long duration = System.currentTimeMillis() - startTime;

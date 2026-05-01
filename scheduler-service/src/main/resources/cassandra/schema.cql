@@ -7,15 +7,16 @@ CREATE KEYSPACE IF NOT EXISTS kairos
 USE kairos;
 
 CREATE TABLE IF NOT EXISTS jobs (
-    user_id          UUID,
-    job_id           UUID,
-    callback_url     TEXT,
-    payload          TEXT,
-    is_recurring     BOOLEAN,
-    interval         TEXT,
-    max_retry_count  INT,
-    created_at       TIMESTAMP,
-    updated_at       TIMESTAMP,
+    user_id             UUID,
+    job_id              UUID,
+    callback_url        TEXT,
+    payload             TEXT,
+    is_recurring        BOOLEAN,
+    execution_interval  TEXT,
+    max_retry_count     INT,
+    scheduled_at        TIMESTAMP,
+    created_at          TIMESTAMP,
+    updated_at          TIMESTAMP,
     PRIMARY KEY (user_id, job_id)
 ) WITH CLUSTERING ORDER BY (job_id ASC);
 

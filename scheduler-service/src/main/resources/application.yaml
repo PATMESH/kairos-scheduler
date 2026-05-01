@@ -21,7 +21,7 @@ kairos:
     group-id: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
     storage-dir: /tmp/kairos-raft
     peers: ${RAFT_PEERS:scheduler-1:localhost:9090,scheduler-2:localhost:9091,scheduler-3:localhost:9092}
-    single-node: ${RAFT_SINGLE_NODE:false}
+    single-node: ${RAFT_SINGLE_NODE:true}
     node-id: ${NODE_ID:scheduler-1}
     port: ${RAFT_PORT:9090}
     address: ${RAFT_ADDRESS:localhost}
@@ -30,8 +30,8 @@ kairos:
       task-execution: ${KAFKA_TOPIC_TASK_EXECUTION:task-execution}
   scheduler:
     node-id: ${NODE_ID:scheduler-1}
-    worker-heartbeat-interval-ms: ${WORKER_HEARTBEAT_INTERVAL_MS:2000}
-    worker-heartbeat-timeout-ms: ${WORKER_HEARTBEAT_TIMEOUT_MS:8000}
+    worker-heartbeat-interval-ms: ${WORKER_HEARTBEAT_INTERVAL_MS:1000000}
+    worker-heartbeat-timeout-ms: ${WORKER_HEARTBEAT_TIMEOUT_MS:14000}
     worker-liveness-check-ms: ${WORKER_LIVENESS_CHECK_MS:3000}
     polling-interval-ms: ${POLLING_INTERVAL_MS:60000}
     time-window-seconds: ${TIME_WINDOW_SECONDS:60}
@@ -45,3 +45,4 @@ logging:
   level:
     org.apache.ratis.grpc.server.GrpcLogAppender: WARN
     org.apache.ratis.server.leader.FollowerInfo: WARN
+    org.apache.kafka: WARN
