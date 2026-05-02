@@ -33,7 +33,7 @@ public class JobController {
         Job job = JobMapper.toEntity(userId, jobId, request);
 
         return jobService.createJob(job)
-                .map(saved -> JobMapper.toResponse(saved, null))
+                .map(saved -> JobMapper.toResponse(saved))
                 .map(ApiResponse::success);
     }
 
@@ -43,14 +43,14 @@ public class JobController {
             @PathVariable UUID jobId) {
 
         return jobService.getJob(userId, jobId)
-                .map(job -> JobMapper.toResponse(job, null))
+                .map(job -> JobMapper.toResponse(job))
                 .map(ApiResponse::success);
     }
 
     @GetMapping("/{userId}")
     public Mono<ApiResponse<List<JobResponse>>> getUserJobs(@PathVariable UUID userId) {
         return jobService.getUserJobs(userId)
-                .map(job -> JobMapper.toResponse(job, null))
+                .map(JobMapper::toResponse)
                 .collectList()
                 .map(ApiResponse::success);
     }

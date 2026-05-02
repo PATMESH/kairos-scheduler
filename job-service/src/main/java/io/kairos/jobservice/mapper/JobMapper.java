@@ -24,7 +24,7 @@ public class JobMapper {
                 .build();
     }
 
-    public static JobResponse toResponse(Job job, String nextExecutionTime) {
+    public static JobResponse toResponse(Job job) {
         return JobResponse.builder()
                 .jobId(job.getKey().getJobId())
                 .userId(job.getKey().getUserId())
@@ -33,7 +33,6 @@ public class JobMapper {
                 .maxRetryCount(job.getMaxRetryCount())
                 .callbackUrl(job.getCallbackUrl())
                 .createdAt(job.getCreatedAt())
-                .nextExecutionTime(nextExecutionTime)
                 .scheduledAt(job.getScheduledAt())
                 .build();
     }

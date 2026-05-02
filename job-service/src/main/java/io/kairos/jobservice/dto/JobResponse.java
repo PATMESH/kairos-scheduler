@@ -17,6 +17,5 @@ public class JobResponse {
     private int maxRetryCount;
     private String callbackUrl;
     private Instant createdAt;
-    private String nextExecutionTime;
     private Instant scheduledAt;
 }
