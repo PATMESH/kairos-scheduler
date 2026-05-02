@@ -10,6 +10,16 @@ interface ExecutionTimelineProps {
   executions: ExecutionHistory[];
 }
 
+function formatExecutionTime(executionTime: string) {
+  const date = new Date(executionTime);
+
+  if (Number.isNaN(date.getTime())) {
+    return executionTime || 'Unknown time';
+  }
+
+  return format(date, 'MMM d, yyyy HH:mm:ss');
+}
+
 export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
   if (executions.length === 0) {
     return (
@@ -62,13 +72,13 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
                 {/* Content */}
                 <div
                   className={cn(
-                    'flex-1 rounded-lg border border-border/50 bg-card/50 p-4',
+                    'min-w-0 flex-1 rounded-lg border border-border/50 bg-card/50 p-4',
                     index === 0 && 'ring-1 ring-primary/20'
                   )}
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={cn(
                             'text-sm font-medium',
@@ -86,19 +96,20 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
                         )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {format(new Date(execution.executionTime), 'MMM d, yyyy HH:mm:ss')}
+                        {formatExecutionTime(execution.executionTime)}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="shrink-0 text-left sm:text-right">
                       {execution.duration && (
                         <p className="text-sm text-muted-foreground">
                           {execution.duration}ms
                         </p>
                       )}
                       {execution.retryCount > 0 && (
-                        <div className="mt-1 flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground sm:justify-end">
                           <RotateCw className="h-3 w-3" />
-                          {execution.retryCount} retries
+                          {execution.retryCount}{' '}
+                          {execution.retryCount === 1 ? 'retry' : 'retries'}
                         </div>
                       )}
                     </div>
@@ -106,7 +117,9 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
                   
                   {execution.errorMessage && (
                     <div className="mt-3 rounded-md bg-destructive/10 p-3">
-                      <p className="text-sm text-destructive">{execution.errorMessage}</p>
+                      <p className="whitespace-pre-wrap break-words text-sm text-destructive">
+                        {execution.errorMessage}
+                      </p>
                     </div>
                   )}
                 </div>

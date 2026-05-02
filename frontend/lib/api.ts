@@ -12,6 +12,71 @@ import type {
 const AUTH_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || '/api/v1/auth';
 const JOBS_BASE_URL = process.env.NEXT_PUBLIC_JOBS_API_URL || '/api/v1/jobs';
 
+type RawExecutionHistory = Partial<ExecutionHistory> & {
+  key?: {
+    jobId?: string;
+    executionTime?: string;
+  };
+};
+
+function normalizeExecutionHistoryItem(
+  execution: RawExecutionHistory,
+  index: number
+): ExecutionHistory | null {
+  const jobId = execution.key?.jobId || execution.jobId;
+  const executionTime = execution.key?.executionTime || execution.executionTime;
+
+  if (!jobId || !executionTime) {
+    return null;
+  }
+
+  const status = String(execution.status || '').toLowerCase();
+  const retryCount = Number(execution.retryCount || 0);
+  const duration = execution.duration == null ? undefined : Number(execution.duration);
+  const errorMessage = execution.errorMessage?.trim();
+
+  return {
+    id: execution.id || `${jobId}-${executionTime}-${index}`,
+    jobId,
+    executionTime,
+    status: status === 'success' ? 'success' : 'failed',
+    retryCount: Number.isFinite(retryCount) ? retryCount : 0,
+    errorMessage: errorMessage || undefined,
+    duration: Number.isFinite(duration) ? duration : undefined,
+  };
+}
+
+function normalizeExecutionHistoryResponse(
+  response: unknown
+): ApiResponse<ExecutionHistory[]> {
+  const isObject = response && typeof response === 'object';
+  const rawData = Array.isArray(response)
+    ? response
+    : isObject && Array.isArray((response as ApiResponse<unknown[]>).data)
+      ? (response as ApiResponse<unknown[]>).data
+      : [];
+
+  const data = rawData
+    .map((execution, index) =>
+      normalizeExecutionHistoryItem(execution as RawExecutionHistory, index)
+    )
+    .filter((execution): execution is ExecutionHistory => Boolean(execution));
+
+  if (Array.isArray(response) || !isObject) {
+    return {
+      success: true,
+      message: 'Execution history fetched successfully',
+      data,
+      timestamp: Date.now(),
+    };
+  }
+
+  return {
+    ...(response as ApiResponse<unknown>),
+    data,
+  };
+}
+
 // Token management
 export const getAccessToken = () => {
   if (typeof window === 'undefined') return null;
@@ -161,9 +226,10 @@ export async function deleteJob(userId: string, jobId: string): Promise<ApiRespo
 
 // Execution History API
 export async function getExecutionHistory(jobId: string): Promise<ApiResponse<ExecutionHistory[]>> {
-  return fetchWithAuth(`${JOBS_BASE_URL}/execution/${jobId}`, {
+  const response = await fetchWithAuth<unknown>(`${JOBS_BASE_URL}/execution/${jobId}`, {
     method: 'GET',
   });
+  return normalizeExecutionHistoryResponse(response);
 }
 
 export async function saveExecutionHistory(data: ExecutionHistory): Promise<ApiResponse<ExecutionHistory>> {

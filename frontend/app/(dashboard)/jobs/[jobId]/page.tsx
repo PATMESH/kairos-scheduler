@@ -71,17 +71,21 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   );
 
   const job: Job | null = jobResponse?.data || null;
-  const executions: ExecutionHistory[] = executionsResponse?.data || [];
+  const executions: ExecutionHistory[] = useMemo(() => {
+    return [...(executionsResponse?.data || [])].sort(
+      (a, b) =>
+        new Date(b.executionTime).getTime() -
+        new Date(a.executionTime).getTime()
+    );
+  }, [executionsResponse]);
 
   const stats = useMemo(() => {
     const total = executions.length;
     const successful = executions.filter((e) => e.status === 'success').length;
     const failed = executions.filter((e) => e.status === 'failed').length;
-    const avgDuration = total > 0
-      ? Math.round(executions.reduce((sum, e) => sum + (e.duration || 0), 0) / total)
-      : 0;
+    const retries = executions.reduce((sum, e) => sum + e.retryCount, 0);
 
-    return { total, successful, failed, avgDuration };
+    return { total, successful, failed, retries };
   }, [executions]);
 
   const handleDelete = async () => {
@@ -102,7 +106,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
   const handleTrigger = () => {
     toast.info('Manually triggering job...');
-    // TODO: Implement manual trigger
+    // TODO: Need to Implement manual trigger
   };
 
   if (isJobLoading) {
@@ -257,8 +261,8 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
                     <p className="text-xs text-muted-foreground">Failed</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-3 text-center">
-                    <p className="text-2xl font-bold text-foreground">{stats.avgDuration}ms</p>
-                    <p className="text-xs text-muted-foreground">Avg Duration</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.retries}</p>
+                    <p className="text-xs text-muted-foreground">Retries</p>
                   </div>
                 </div>
               </CardContent>
